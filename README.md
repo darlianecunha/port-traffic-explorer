@@ -21,12 +21,6 @@ Ports included: Rotterdam, Antwerp-Bruges, Hamburg, Bremerhaven, Valencia, Algec
 Barcelona, Piraeus, Marseille, HAROPA (Le Havre-Rouen), Genova, Gioia Tauro, Sines,
 Constanta, Gdansk. Adding a port is one line in `build_data.py`.
 
-## Brazil layer (planned)
-
-When the Brazilian ANTAQ portal returns, this explorer will show Brazilian ports (Santos,
-Itaqui, Paranaguá, Itaguaí and the rest of the top 20) side by side with the European ones,
-on the same quarterly grid, connected to the *Brazil Vessel Call Intelligence* platform.
-
 ## Files
 
 | File | Purpose |
@@ -66,7 +60,7 @@ GitHub Pages also works: Settings → Pages → deploy from branch.
 
 ## Author
 
-**Darliane Ribeiro Cunha, PhD** — Professor, Federal University of Maranhão (UFMA).
+**Darliane Ribeiro Cunha, PhD**.
 Research: maritime decarbonisation, port sustainability analytics, SDG implementation.
 
 Related projects: [SDG Port Hub](https://sdgporthub.com) ·

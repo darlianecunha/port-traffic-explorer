@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>European Port Traffic Explorer — vessel arrivals by type &amp; size (Eurostat)</title>
-<meta name="description" content="Interactive explorer of quarterly vessel arrivals at 15 major European ports, by ship type and size class. Official Eurostat data, 2019 to present. Brazilian comparison layer coming next.">
+<meta name="description" content="Interactive explorer of quarterly vessel arrivals at 15 major European ports, by ship type and size class. Official Eurostat data, 2019 to present.">
 <meta property="og:title" content="European Port Traffic Explorer">
 <meta property="og:description" content="Quarterly vessel arrivals at 15 major EU ports by ship type and size — interactive, from official Eurostat data.">
 <meta property="og:type" content="website">
@@ -58,7 +58,7 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
 <body>
 <header>
   <div class="wrap">
-    <p class="eyebrow">Eurostat · mar_tf_qm · quarterly · 2019 → present</p>
+    <p class="eyebrow">Eurostat official maritime statistics · 2019 → present</p>
     <h1>European Port Traffic Explorer</h1>
     <p class="lead">Interactive view of vessel arrivals at 15 major European ports, by ship type and
     size class, from official Eurostat maritime statistics. Select ports, pick a ship type and
@@ -115,13 +115,6 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
     </table>
   </div>
 
-  <div class="note">
-    <strong>Brazil layer, coming next.</strong> When the ANTAQ portal returns, this explorer will
-    place Brazilian ports (Santos, Itaqui, Paranaguá, Itaguaí and the rest of the top 20) side by
-    side with the European ones, using the same quarterly grid and size classes, connected to the
-    <em>Brazil Vessel Call Intelligence</em> platform.
-  </div>
-
   <div class="note blue" id="method"></div>
 
 </div>
@@ -129,8 +122,8 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
 
 <footer>
   <div class="wrap">
-    <span>Analysis: <strong>Darliane Ribeiro Cunha, PhD</strong> · Federal University of Maranhão (UFMA)</span>
-    <span>Data: © Eurostat (mar_tf_qm), free reuse with attribution</span>
+    <span>Analysis: <strong>Darliane Ribeiro Cunha, PhD</strong></span>
+    <span>Data: © Eurostat, free reuse with attribution</span>
   </div>
 </footer>
 
@@ -322,7 +315,7 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
       el("method").innerHTML = "<strong>Source &amp; method.</strong> " + D.meta.source +
         ", retrieved from the free Eurostat dissemination API on " + D.meta.generated +
         ". Arrivals are based on inward declarations at main ports (vessels ≥ 100 GT). " +
-        "Annual figures use the reference calendar year <strong>" + D.ref_year + "</strong>, the latest year with all four quarters reported by every port, matching the calendar-year convention of the Brazilian data. Regenerate <code>data.json</code> any time " +
+        "Annual figures use the reference calendar year <strong>" + D.ref_year + "</strong>, the latest year with all four quarters reported by every port. Regenerate <code>data.json</code> any time " +
         "with <code>python3 build_data.py</code>; new quarters are picked up automatically.";
       var rt = document.getElementById("rank-title");
       if (rt) rt.textContent = "Ranking, calendar year " + D.ref_year;
