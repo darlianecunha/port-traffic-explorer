@@ -1,5 +1,8 @@
 # European Port Traffic Explorer
 
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.21144422.svg)](https://doi.org/10.5281/zenodo.21144422)
+
+
 Interactive explorer of **annual vessel arrivals at 15 major European ports**, by ship type
 and size class, built on official **Eurostat** maritime statistics (dataset `mar_tf_qm`,
 "Vessels arriving in the main ports by type and size of vessels", quarterly at source,
@@ -8,8 +11,14 @@ one JSON file, Chart.js from CDN.
 
 ## What you can do
 
-- **Select any combination of ports** (chips or ranking-table rows), or hit **All ports**
-  to compare the full set at once
+- **Automatic highlights**: fastest-growing and steepest-declining port vs 2019, most
+  container-dependent port and largest average vessel, computed live from the data
+- **Interactive map of Europe**: bubbles sized by arrivals in the reference year; click a
+  bubble to add or remove a port from every chart
+- **Change vs 2019**: recovery chart comparing the reference year with the pre-pandemic
+  baseline for all ports
+- **Select any combination of ports** (chips, map bubbles or ranking-table rows), or hit
+  **All ports** to compare the full set at once
 - **Annual time series 2019 → present**: arrivals per calendar year and port, filterable by
   ship type (container, liquid bulk, dry bulk, cruise, general cargo…); a year is shown only
   once the port has reported all four quarters
@@ -28,6 +37,8 @@ Constanta, Gdansk. Adding a port is one line in `build_data.py`.
 | `index.html` | The interactive site (single file) |
 | `data.json` | Aggregated indicators consumed by the page |
 | `build_data.py` | Downloads fresh data from the Eurostat API and rebuilds `data.json` |
+| `europe_map.json` | Lightweight SVG basemap + port coordinates for the bubble map |
+| `make_map.py` | Regenerates the basemap (Natural Earth, public domain); run only if the port list changes |
 
 ## Updating the data
 
