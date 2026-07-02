@@ -89,8 +89,8 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
 
   <div class="grid">
     <div class="box wide">
-      <h3 id="ts-title">Quarterly arrivals</h3>
-      <p class="hint">Vessels arriving per quarter, selected ports. Gaps mean the port has not yet reported that quarter.</p>
+      <h3 id="ts-title">Annual arrivals</h3>
+      <p class="hint">Vessels arriving per calendar year (sum of the four quarters), selected ports. A year only appears once the port has reported all four quarters.</p>
       <div class="cwrap"><canvas id="c-series"></canvas></div>
     </div>
     <div class="box">
@@ -174,20 +174,45 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
     }).join("");
   }
 
+  function years() {
+    var ys = [];
+    D.quarters.forEach(function (q) {
+      var y = q.slice(0, 4);
+      if (ys.indexOf(y) < 0) ys.push(y);
+    });
+    return ys;
+  }
+
+  // Serie anual: soma dos 4 trimestres; ano incompleto para o porto vira null
+  function annualSeries(code, type) {
+    var row = (D.series[code] || {})[type];
+    var tot = (D.series[code] || {}).TOTAL;
+    if (!row) return [];
+    return years().map(function (y) {
+      var sum = 0, complete = 0;
+      D.quarters.forEach(function (q, i) {
+        if (q.indexOf(y) === 0) {
+          if (tot && tot[i] !== null && tot[i] !== undefined) complete++;
+          sum += row[i] || 0;
+        }
+      });
+      return complete === 4 ? sum : null;
+    });
+  }
+
   function drawSeries() {
-    el("ts-title").textContent = "Quarterly arrivals — " +
+    el("ts-title").textContent = "Annual arrivals — " +
       (shipType === "TOTAL" ? "all ship types" : (D.vessel_labels[shipType] || shipType));
     mk("c-series", { type: "line",
-      data: { labels: D.quarters,
+      data: { labels: years(),
         datasets: selected.map(function (c) {
-          return { label: pname(c), data: (D.series[c] || {})[shipType] || [],
-            borderColor: color(c), backgroundColor: color(c), pointRadius: 0,
+          return { label: pname(c), data: annualSeries(c, shipType),
+            borderColor: color(c), backgroundColor: color(c), pointRadius: 3,
             borderWidth: 2, tension: .25, spanGaps: false };
         }) },
       options: { responsive: true, maintainAspectRatio: false,
         interaction: { mode: "index", intersect: false },
-        plugins: { legend: { position: "bottom", labels: { boxWidth: 12, padding: 10 } } },
-        scales: { x: { ticks: { maxTicksLimit: 12 } } } } });
+        plugins: { legend: { position: "bottom", labels: { boxWidth: 12, padding: 10 } } } } });
   }
 
   // Soma do ano-calendario de referencia (mesma convencao dos dados do Brasil)
