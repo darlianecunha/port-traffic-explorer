@@ -7,7 +7,8 @@ no build step: one HTML file, one JSON file, Chart.js from CDN.
 
 ## What you can do
 
-- **Select up to 8 ports** (chips or ranking-table rows) and compare them live
+- **Select any combination of ports** (chips or ranking-table rows), or hit **All ports**
+  to compare the full set at once
 - **Time series 2019 → present**: quarterly arrivals per port, filterable by ship type
   (container, liquid bulk, dry bulk, cruise, general cargo…)
 - **Fleet mix**: share of arrivals by ship type in each port's last four reported quarters

@@ -21,7 +21,7 @@ API = ("https://ec.europa.eu/eurostat/api/dissemination/statistics/1.0/data/"
 
 PORTS = {
     "NL_0NLRTM": {"name": "Rotterdam", "country": "NL"},
-    "BE_0BEANR": {"name": "Antwerpen", "country": "BE"},
+    "BE_0BE003": {"name": "Antwerp-Bruges", "country": "BE"},
     "DE_1DEHAM": {"name": "Hamburg", "country": "DE"},
     "DE_1DEBRV": {"name": "Bremerhaven", "country": "DE"},
     "ES_2ESVLC": {"name": "Valencia", "country": "ES"},
@@ -29,7 +29,7 @@ PORTS = {
     "ES_2ESBCN": {"name": "Barcelona", "country": "ES"},
     "EL_0GRPIR": {"name": "Piraeus", "country": "GR"},
     "FR_2FRMRS": {"name": "Marseille", "country": "FR"},
-    "FR_1FRLEH": {"name": "Le Havre", "country": "FR"},
+    "FR_1FR001": {"name": "HAROPA (Le Havre-Rouen)", "country": "FR"},
     "IT_0ITGOA": {"name": "Genova", "country": "IT"},
     "IT_0ITGIT": {"name": "Gioia Tauro", "country": "IT"},
     "PT_0PTSIE": {"name": "Sines", "country": "PT"},
@@ -83,50 +83,65 @@ def unpack(js):
 
 
 def main():
-    all_quarters = set()
+    # 1a passada: baixa tudo e guarda cru, por porto
+    raw = {}
     vessel_labels = {}
-    series = {}
-    size_latest = {}
-    totals_latest = {}
-
+    all_quarters = set()
     for code, info in PORTS.items():
         print("Fetching", info["name"], "...")
         js = fetch(code)
         dims, cats, val = unpack(js)
         vessel_labels.update(js["dimension"]["vessel"]["category"]["label"])
-        quarters = cats["time"]
-        all_quarters.update(quarters)
-
-        def get(tonnage, vessel, unit, t):
-            return val.get(("Q", tonnage, vessel, unit, code, t))
-
-        # series por tipo (tonnage TOTAL, unidade NR)
-        series[code] = {}
-        for v in cats["vessel"]:
-            row = [get("TOTAL", v, "NR", t) for t in quarters]
-            if any(x is not None for x in row):
-                series[code][v] = row
-
-        # perfil de tamanho: soma dos ultimos 4 trimestres com dado (vessel TOTAL)
-        with_data = [t for t in quarters
-                     if get("TOTAL", "TOTAL", "NR", t) is not None]
-        last4 = with_data[-4:]
-        size_latest[code] = {}
-        for label, group in SIZE_GROUPS:
-            nr = sum(get(g, "TOTAL", "NR", t) or 0 for g in group for t in last4)
-            gt = sum(get(g, "TOTAL", "THS_GT", t) or 0 for g in group for t in last4)
-            size_latest[code][label] = {"nr": int(nr), "gt": round(gt, 1)}
-        totals_latest[code] = {
-            "nr": int(sum(get("TOTAL", "TOTAL", "NR", t) or 0 for t in last4)),
-            "gt": round(sum(get("TOTAL", "TOTAL", "THS_GT", t) or 0 for t in last4), 1),
-            "window": f"{last4[0]} to {last4[-1]}" if last4 else None,
-        }
+        all_quarters.update(cats["time"])
+        raw[code] = {"cats": cats, "val": val}
         _time.sleep(1)   # gentileza com a API
 
     quarters = sorted(all_quarters)
-    # normaliza series para a grade comum de trimestres
-    for code in series:
-        js_q = None  # cada porto ja esta na mesma grade (sinceTimePeriod)
+
+    def get(code, tonnage, vessel, unit, t):
+        return raw[code]["val"].get(("Q", tonnage, vessel, unit, code, t))
+
+    # 2a passada: series alinhadas a grade comum de trimestres
+    series = {}
+    for code in PORTS:
+        series[code] = {}
+        for v in raw[code]["cats"]["vessel"]:
+            row = [get(code, "TOTAL", v, "NR", t) for t in quarters]
+            if any(x is not None for x in row):
+                series[code][v] = row
+
+    # Ano de referencia: ultimo ano-calendario com os 4 trimestres reportados
+    # em TODOS os portos (mesma convencao que sera usada no Brasil/ANTAQ)
+    years = sorted({t[:4] for t in quarters})
+    ref_year = None
+    for y in years:
+        qs = [f"{y}-Q{i}" for i in (1, 2, 3, 4)]
+        if all(q in quarters for q in qs) and all(
+                all(get(c, "TOTAL", "TOTAL", "NR", q) is not None for q in qs)
+                for c in PORTS):
+            ref_year = y
+    if ref_year is None:
+        raise SystemExit("Nenhum ano-calendario completo para todos os portos.")
+    ref_qs = [f"{ref_year}-Q{i}" for i in (1, 2, 3, 4)]
+    print("Ano de referencia (fechado):", ref_year)
+
+    # Agregados do ano de referencia
+    size_year = {}
+    totals_year = {}
+    for code in PORTS:
+        size_year[code] = {}
+        for label, group in SIZE_GROUPS:
+            nr = sum(get(code, g, "TOTAL", "NR", t) or 0
+                     for g in group for t in ref_qs)
+            gt = sum(get(code, g, "TOTAL", "THS_GT", t) or 0
+                     for g in group for t in ref_qs)
+            size_year[code][label] = {"nr": int(nr), "gt": round(gt, 1)}
+        totals_year[code] = {
+            "nr": int(sum(get(code, "TOTAL", "TOTAL", "NR", t) or 0 for t in ref_qs)),
+            "gt": round(sum(get(code, "TOTAL", "TOTAL", "THS_GT", t) or 0
+                            for t in ref_qs), 1),
+        }
+
     payload = {
         "meta": {
             "source": "Eurostat, mar_tf_qm (Vessels arriving in the main ports "
@@ -137,18 +152,19 @@ def main():
                            "ANTAQ portal returns.",
         },
         "quarters": quarters,
+        "ref_year": ref_year,
         "ports": [{"code": c, **PORTS[c]} for c in PORTS],
         "vessel_labels": vessel_labels,
         "size_groups": [g[0] for g in SIZE_GROUPS],
         "series": series,
-        "size_latest": size_latest,
-        "totals_latest": totals_latest,
+        "size_year": size_year,
+        "totals_year": totals_year,
     }
     (HERE / "data.json").write_text(json.dumps(payload, ensure_ascii=False),
                                     encoding="utf-8")
     kb = (HERE / "data.json").stat().st_size / 1024
     print(f"\ndata.json written: {len(PORTS)} ports, {len(quarters)} quarters, "
-          f"{kb:.0f} KB")
+          f"ref year {ref_year}, {kb:.0f} KB")
 
 
 if __name__ == "__main__":
