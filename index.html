@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>European Port Traffic Explorer — vessel arrivals by type &amp; size (Eurostat)</title>
+<meta name="description" content="Interactive explorer of quarterly vessel arrivals at 15 major European ports, by ship type and size class. Official Eurostat data, 2019 to present. Brazilian comparison layer coming next.">
+<meta property="og:title" content="European Port Traffic Explorer">
+<meta property="og:description" content="Quarterly vessel arrivals at 15 major EU ports by ship type and size — interactive, from official Eurostat data.">
+<meta property="og:type" content="website">
+<style>
+:root{--navy:#0b2239;--navy2:#12304d;--teal:#0fb5ba;--teald:#0a8f93;--ink:#1c2b36;--muted:#5b6b78;
+--line:#e2e8ee;--bg:#f5f8fa;--card:#fff;--warn:#e8a33d;--radius:12px;
+--shadow:0 1px 3px rgba(11,34,57,.08),0 8px 24px rgba(11,34,57,.06);
+--font:"Segoe UI","Helvetica Neue",Arial,system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0;font-family:var(--font);color:var(--ink);background:var(--bg)}
+a{color:var(--teald);text-decoration:none}
+header{background:linear-gradient(120deg,var(--navy),var(--navy2));color:#fff;padding:36px 20px 30px}
+.wrap{max-width:1100px;margin:0 auto;padding:0 20px}
+.eyebrow{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--teal);margin:0 0 10px}
+h1{margin:0 0 10px;font-size:28px;line-height:1.25}
+header p.lead{margin:0;max-width:840px;color:#cfdae4;font-size:15px;line-height:1.6}
+main{padding:24px 0 10px}
+.controls{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+padding:16px 18px;box-shadow:var(--shadow);margin-bottom:20px}
+.controls h4{margin:0 0 8px;font-size:12px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
+.port-chips{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.pchip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 13px;
+font:600 13px var(--font);color:var(--muted);cursor:pointer;transition:all .15s}
+.pchip.on{background:var(--teal);border-color:var(--teal);color:#fff}
+.row2{display:flex;flex-wrap:wrap;gap:20px;align-items:center}
+select{font:14px var(--font);padding:7px 10px;border:1px solid var(--line);border-radius:8px;
+background:#fff;color:var(--ink)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg button{border:0;background:#fff;padding:7px 14px;font:600 13px var(--font);color:var(--muted);cursor:pointer}
+.seg button.on{background:var(--navy);color:#fff}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin:0 0 20px}
+@media(max-width:860px){.grid{grid-template-columns:1fr}}
+.box{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px;box-shadow:var(--shadow)}
+.box h3{margin:0 0 4px;font-size:16px;color:var(--navy)}
+.box .hint{margin:0 0 12px;font-size:13px;color:var(--muted)}
+.cwrap{position:relative;height:320px}
+.wide{grid-column:1/-1}.wide .cwrap{height:360px}
+table.data{width:100%;border-collapse:collapse;font-size:13.5px}
+table.data th{background:var(--navy);color:#fff;text-align:left;padding:8px 10px;font-weight:600;cursor:default}
+table.data td{padding:7px 10px;border-bottom:1px solid var(--line)}
+table.data tr:nth-child(even){background:#f2f6f8}
+td.metric{font-weight:600;color:var(--navy)}
+.note{background:#fdf6e8;border-left:4px solid var(--warn);border-radius:6px;padding:14px 16px;
+font-size:13.5px;color:#5a4a28;line-height:1.55;margin:4px 0 24px}
+.note.blue{background:#eef6f7;border-left-color:var(--teal);color:#28414f}
+footer{border-top:1px solid var(--line);margin-top:30px;padding:18px 0 30px;font-size:13px;color:var(--muted)}
+footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <p class="eyebrow">Eurostat · mar_tf_qm · quarterly · 2019 → present</p>
+    <h1>European Port Traffic Explorer</h1>
+    <p class="lead">Interactive view of vessel arrivals at 15 major European ports, by ship type and
+    size class, from official Eurostat maritime statistics. Select ports, pick a ship type and
+    compare fleet profiles: who receives the container mega-ships, who lives off tankers, and how
+    traffic moved since 2019.</p>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+  <div class="controls">
+    <h4>Ports</h4>
+    <div class="port-chips" id="chips"></div>
+    <div class="row2">
+      <div><h4>Ship type</h4><select id="sel-type"></select></div>
+      <div><h4>Size metric</h4>
+        <span class="seg" id="seg-size">
+          <button data-m="nr" class="on">Arrivals</button><button data-m="gt">Gross tonnage</button>
+        </span>
+      </div>
+    </div>
+  </div>
+
+  <div class="grid">
+    <div class="box wide">
+      <h3 id="ts-title">Quarterly arrivals</h3>
+      <p class="hint">Vessels arriving per quarter, selected ports. Gaps mean the port has not yet reported that quarter.</p>
+      <div class="cwrap"><canvas id="c-series"></canvas></div>
+    </div>
+    <div class="box">
+      <h3>Fleet mix by ship type</h3>
+      <p class="hint">Share of arrivals in the last four reported quarters, per port</p>
+      <div class="cwrap"><canvas id="c-mix"></canvas></div>
+    </div>
+    <div class="box">
+      <h3 id="size-title">Size profile of calling vessels</h3>
+      <p class="hint">Last four reported quarters, grouped GT classes</p>
+      <div class="cwrap"><canvas id="c-size"></canvas></div>
+    </div>
+  </div>
+
+  <div class="box" style="margin-bottom:20px">
+    <h3>Ranking, last four reported quarters</h3>
+    <p class="hint">All 15 ports, regardless of selection. Click a row to toggle the port in the charts.</p>
+    <table class="data">
+      <thead><tr><th>Port</th><th>Arrivals</th><th>GT (thousand)</th><th>Avg GT per call</th>
+      <th>Container share</th><th>Tanker share</th><th>Dry bulk share</th></tr></thead>
+      <tbody id="t-rank"></tbody>
+    </table>
+  </div>
+
+  <div class="note">
+    <strong>Brazil layer, coming next.</strong> When the ANTAQ portal returns, this explorer will
+    place Brazilian ports (Santos, Itaqui, Paranaguá, Itaguaí and the rest of the top 20) side by
+    side with the European ones, using the same quarterly grid and size classes, connected to the
+    <em>Brazil Vessel Call Intelligence</em> platform.
+  </div>
+
+  <div class="note blue" id="method"></div>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Analysis: <strong>Darliane Ribeiro Cunha, PhD</strong> · Federal University of Maranhão (UFMA)</span>
+    <span>Data: © Eurostat (mar_tf_qm), free reuse with attribution</span>
+  </div>
+</footer>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+(function () {
+  "use strict";
+  var PALETTE = ["#0fb5ba", "#0b2239", "#e8a33d", "#d6584f", "#7b6cf6", "#2fa36b",
+                 "#8a5a44", "#5b6b78", "#c76b98", "#4a90d9", "#98a531", "#e07b39",
+                 "#3fbf9f", "#9b59b6", "#34495e"];
+  var MIX_TYPES = ["ODC_CNT", "LBK", "DBK", "ODC_GEN", "ODC_SPE", "ODC_PCRU"];
+  Chart.defaults.font.family = '"Segoe UI",Helvetica,Arial,sans-serif';
+  Chart.defaults.color = "#5b6b78";
+
+  var D, selected = ["NL_0NLRTM", "BE_0BEANR", "DE_1DEHAM", "ES_2ESVLC", "EL_0GRPIR"];
+  var shipType = "TOTAL", sizeMetric = "nr";
+  var charts = {};
+
+  function el(id) { return document.getElementById(id); }
+  function fmt(n, d) { return n === null || n === undefined ? "–"
+    : Number(n).toLocaleString("en-GB", { maximumFractionDigits: d || 0 }); }
+  function pname(code) { var p = D.ports.find(function (x) { return x.code === code; });
+    return p ? p.name : code; }
+  function color(code) { return PALETTE[D.ports.findIndex(function (x) { return x.code === code; }) % PALETTE.length]; }
+
+  function mk(id, cfg) { if (charts[id]) charts[id].destroy();
+    charts[id] = new Chart(el(id), cfg); }
+
+  function buildControls() {
+    el("chips").innerHTML = D.ports.map(function (p) {
+      return '<button class="pchip' + (selected.indexOf(p.code) >= 0 ? " on" : "") +
+        '" data-c="' + p.code + '">' + p.name + '</button>';
+    }).join("");
+    var types = {};
+    D.ports.forEach(function (p) {
+      Object.keys(D.series[p.code] || {}).forEach(function (t) { types[t] = 1; });
+    });
+    el("sel-type").innerHTML = Object.keys(types).map(function (t) {
+      return '<option value="' + t + '"' + (t === shipType ? " selected" : "") + ">" +
+        (t === "TOTAL" ? "All ship types" : (D.vessel_labels[t] || t)) + "</option>";
+    }).join("");
+  }
+
+  function drawSeries() {
+    el("ts-title").textContent = "Quarterly arrivals — " +
+      (shipType === "TOTAL" ? "all ship types" : (D.vessel_labels[shipType] || shipType));
+    mk("c-series", { type: "line",
+      data: { labels: D.quarters,
+        datasets: selected.map(function (c) {
+          return { label: pname(c), data: (D.series[c] || {})[shipType] || [],
+            borderColor: color(c), backgroundColor: color(c), pointRadius: 0,
+            borderWidth: 2, tension: .25, spanGaps: false };
+        }) },
+      options: { responsive: true, maintainAspectRatio: false,
+        interaction: { mode: "index", intersect: false },
+        plugins: { legend: { position: "bottom", labels: { boxWidth: 12, padding: 10 } } },
+        scales: { x: { ticks: { maxTicksLimit: 12 } } } } });
+  }
+
+  function last4sum(code, type) {
+    var row = (D.series[code] || {})[type];
+    var tot = (D.series[code] || {}).TOTAL || [];
+    if (!row) return 0;
+    var idx = [];
+    for (var i = tot.length - 1; i >= 0 && idx.length < 4; i--) {
+      if (tot[i] !== null && tot[i] !== undefined) idx.push(i);
+    }
+    return idx.reduce(function (s, i) { return s + (row[i] || 0); }, 0);
+  }
+
+  function drawMix() {
+    var others = [];
+    var datasets = MIX_TYPES.map(function (t, i) {
+      return { label: D.vessel_labels[t] || t,
+        data: selected.map(function (c) {
+          var tot = last4sum(c, "TOTAL");
+          return tot ? +(last4sum(c, t) / tot * 100).toFixed(1) : 0;
+        }),
+        backgroundColor: PALETTE[i], borderRadius: 3 };
+    });
+    datasets.push({ label: "Other", backgroundColor: "#c6d2da", borderRadius: 3,
+      data: selected.map(function (c, j) {
+        var s = 0; datasets.forEach(function (d) { s += d.data[j]; });
+        return +(Math.max(0, 100 - s)).toFixed(1);
+      }) });
+    mk("c-mix", { type: "bar",
+      data: { labels: selected.map(pname), datasets: datasets },
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: "bottom", labels: { boxWidth: 11, padding: 8 } },
+          tooltip: { callbacks: { label: function (c) { return c.dataset.label + ": " + c.raw + "%"; } } } },
+        scales: { x: { stacked: true }, y: { stacked: true, max: 100,
+          ticks: { callback: function (v) { return v + "%"; } } } } } });
+  }
+
+  function drawSize() {
+    el("size-title").textContent = "Size profile — " +
+      (sizeMetric === "nr" ? "number of arrivals" : "gross tonnage (thousand GT)");
+    mk("c-size", { type: "bar",
+      data: { labels: D.size_groups,
+        datasets: selected.map(function (c) {
+          return { label: pname(c),
+            data: D.size_groups.map(function (g) { return (D.size_latest[c][g] || {})[sizeMetric] || 0; }),
+            backgroundColor: color(c), borderRadius: 4 };
+        }) },
+      options: { responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { position: "bottom", labels: { boxWidth: 12, padding: 10 } } } } });
+  }
+
+  function drawRank() {
+    var rows = D.ports.map(function (p) {
+      var t = D.totals_latest[p.code] || {};
+      var tot = last4sum(p.code, "TOTAL");
+      function share(type) { return tot ? (last4sum(p.code, type) / tot * 100).toFixed(1) + "%" : "–"; }
+      return { code: p.code, name: p.name, nr: t.nr || 0, gt: t.gt || 0,
+        avg: t.nr ? t.gt * 1000 / t.nr : 0,
+        cnt: share("ODC_CNT"), lbk: share("LBK"), dbk: share("DBK") };
+    }).sort(function (a, b) { return b.nr - a.nr; });
+    el("t-rank").innerHTML = rows.map(function (r) {
+      var on = selected.indexOf(r.code) >= 0;
+      return '<tr data-c="' + r.code + '" style="cursor:pointer' +
+        (on ? ";outline:2px solid #0fb5ba33" : "") + '"><td class="metric">' +
+        (on ? "● " : "○ ") + r.name + "</td><td>" + fmt(r.nr) + "</td><td>" + fmt(r.gt) +
+        "</td><td>" + fmt(r.avg) + "</td><td>" + r.cnt + "</td><td>" + r.lbk +
+        "</td><td>" + r.dbk + "</td></tr>";
+    }).join("");
+  }
+
+  function drawAll() { drawSeries(); drawMix(); drawSize(); drawRank(); }
+
+  document.addEventListener("click", function (e) {
+    var chip = e.target.closest(".pchip"), row = e.target.closest("tr[data-c]");
+    var code = chip ? chip.getAttribute("data-c") : (row ? row.getAttribute("data-c") : null);
+    if (code) {
+      var i = selected.indexOf(code);
+      if (i >= 0) { if (selected.length > 1) selected.splice(i, 1); }
+      else if (selected.length < 8) selected.push(code);
+      buildControls(); drawAll();
+    }
+    var seg = e.target.closest("#seg-size button");
+    if (seg) {
+      sizeMetric = seg.getAttribute("data-m");
+      document.querySelectorAll("#seg-size button").forEach(function (b) {
+        b.classList.toggle("on", b === seg); });
+      drawSize();
+    }
+  });
+  document.addEventListener("change", function (e) {
+    if (e.target.id === "sel-type") { shipType = e.target.value; drawSeries(); }
+  });
+
+  fetch("data.json", { cache: "no-store" })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
+      D = data;
+      el("method").innerHTML = "<strong>Source &amp; method.</strong> " + D.meta.source +
+        ", retrieved from the free Eurostat dissemination API on " + D.meta.generated +
+        ". Arrivals are based on inward declarations at main ports (vessels ≥ 100 GT). " +
+        "'Last four reported quarters' uses each port's most recent quarters with data, so " +
+        "windows can differ slightly between ports. Regenerate <code>data.json</code> any time " +
+        "with <code>python3 build_data.py</code>; new quarters are picked up automatically.";
+      buildControls(); drawAll();
+    })
+    .catch(function () {
+      document.querySelector("main .wrap").insertAdjacentHTML("afterbegin",
+        "<p style='color:#d6584f'>data.json could not be loaded. Serve over HTTP " +
+        "(<code>python3 -m http.server</code>) or deploy to Vercel/GitHub Pages.</p>");
+    });
+})();
+</script>
+</body>
+</html>
