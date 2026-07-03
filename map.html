@@ -283,11 +283,13 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
     fetch("europe_map.json", { cache: "no-store" }).then(function (r) { return r.json(); })
   ]).then(function (both) {
     D = both[0]; MAP = both[1];
-    // anos com pelo menos um porto completo
+    // anos ate o ano de referencia (ultimo ano-calendario completo em todos os
+    // portos); anos parciais como 2025 ficam fora ate o Eurostat fechar
     var ys = [];
     D.quarters.forEach(function (q) {
       var y = +q.slice(0, 4);
-      if (ys.indexOf(y) < 0 && D.ports.some(function (p) { return yearVal(p.code, "TOTAL", y) !== null; })) {
+      if (y <= +D.ref_year && ys.indexOf(y) < 0 &&
+          D.ports.some(function (p) { return yearVal(p.code, "TOTAL", y) !== null; })) {
         ys.push(y);
       }
     });
