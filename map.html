@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Map view — European Port Traffic Explorer</title>
-<meta name="description" content="Animated map of vessel traffic at 15 major European ports: arrivals, growth since 2019, container share and average vessel size, year by year.">
+<meta name="description" content="Animated map of vessel arrivals at 15 major European ports, year by year, with a live ranking. Official Eurostat data.">
 <style>
 :root{--navy:#0b2239;--navy2:#12304d;--teal:#0fb5ba;--teald:#0a8f93;--ink:#1c2b36;--muted:#5b6b78;
 --line:#e2e8ee;--bg:#f5f8fa;--card:#fff;--good:#2fa36b;--bad:#d6584f;--radius:12px;
@@ -13,7 +13,7 @@
 *{box-sizing:border-box}body{margin:0;font-family:var(--font);color:var(--ink);background:var(--bg)}
 a{color:var(--teald);text-decoration:none}
 header{background:linear-gradient(120deg,var(--navy),var(--navy2));color:#fff;padding:26px 20px 22px}
-.wrap{max-width:1100px;margin:0 auto;padding:0 20px}
+.wrap{max-width:1160px;margin:0 auto;padding:0 20px}
 .eyebrow{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--teal);margin:0 0 8px}
 h1{margin:0 0 6px;font-size:24px}
 header p.lead{margin:0;color:#cfdae4;font-size:14px}
@@ -22,27 +22,44 @@ main{padding:20px 0 10px}
 .controls{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
 padding:14px 18px;box-shadow:var(--shadow);margin-bottom:16px;display:flex;flex-wrap:wrap;
 gap:22px;align-items:center}
-.controls h4{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
-select{font:14px var(--font);padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
-.yearbox{display:flex;align-items:center;gap:12px;flex:1;min-width:280px}
-#year-slider{flex:1}
-#year-label{font:700 22px var(--font);color:var(--navy);min-width:64px;text-align:center}
-#play{border:0;background:var(--navy);color:#fff;font:600 13px var(--font);padding:8px 16px;
+.yearbox{display:flex;align-items:center;gap:14px;flex:1;min-width:300px}
+#year-slider{flex:1;accent-color:var(--teal)}
+#year-label{font:700 26px var(--font);color:var(--navy);min-width:72px;text-align:center}
+#play{border:0;background:var(--teal);color:#fff;font:600 14px var(--font);padding:9px 20px;
 border-radius:8px;cursor:pointer}
-#play:hover{background:var(--navy2)}
+#play:hover{background:var(--teald)}
+.total-chip{text-align:right}
+.total-chip .n{font:700 22px var(--font);color:var(--navy)}
+.total-chip .l{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted)}
+.layout{display:grid;grid-template-columns:1fr 280px;gap:16px}
+@media(max-width:920px){.layout{grid-template-columns:1fr}}
 .mapbox{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
 box-shadow:var(--shadow);padding:10px;position:relative}
 #map-svg{width:100%;height:auto;display:block}
-#map-svg .sea{fill:#eef6fa}
-#map-svg .land{fill:#e6edf1;stroke:#c8d6dd;stroke-width:.6}
-#map-svg circle{cursor:pointer;transition:r .5s ease,fill .5s ease}
+#map-svg .sea{fill:#eaf4f9}
+#map-svg .land{fill:#e4ebef;stroke:#c6d4db;stroke-width:.6}
+#map-svg circle.port{cursor:pointer;fill:var(--teal);fill-opacity:.5;stroke:var(--teald);
+stroke-width:2;transition:r .6s ease}
+#map-svg circle.port:hover{fill-opacity:.75}
+#map-svg circle.nodata{fill:#c9d4da;stroke:none}
 #map-svg text.plabel{font:600 11.5px var(--font);fill:#20343f;paint-order:stroke;stroke:#fff;
 stroke-width:3;stroke-linejoin:round;pointer-events:none}
-.legend{display:flex;flex-wrap:wrap;gap:18px;align-items:center;padding:10px 8px 4px;
-font-size:12.5px;color:var(--muted)}
-.legend .sw{display:inline-block;width:13px;height:13px;border-radius:50%;margin-right:5px;vertical-align:-2px}
-.detail{position:absolute;top:18px;right:18px;width:250px;background:#fff;border:1px solid var(--line);
-border-radius:10px;box-shadow:var(--shadow);padding:14px 16px;font-size:13px;display:none}
+#map-svg text.pval{font:700 10.5px var(--font);fill:#075e61;paint-order:stroke;stroke:#fff;
+stroke-width:3;pointer-events:none}
+.rank{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+box-shadow:var(--shadow);padding:14px 14px 8px}
+.rank h3{margin:0 0 10px;font-size:14px;color:var(--navy)}
+.rank-row{display:flex;align-items:center;gap:8px;padding:4px 4px;border-radius:6px;
+font-size:12.5px;cursor:pointer;transition:transform .5s ease}
+.rank-row:hover{background:#f0f6f8}
+.rank-row .pos{width:18px;color:var(--muted);font-weight:600}
+.rank-row .nm{flex:1;font-weight:600;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rank-row .val{font-weight:700}
+.rank-row .d{width:44px;text-align:right;font-size:11px;font-weight:700}
+.rank-row .d.up{color:var(--good)}.rank-row .d.down{color:var(--bad)}.rank-row .d.na{color:#b7c4cc}
+.rank-row .bar{position:absolute}
+.detail{position:absolute;top:18px;left:18px;width:240px;background:#fff;border:1px solid var(--line);
+border-radius:10px;box-shadow:var(--shadow);padding:14px 16px;font-size:13px;display:none;z-index:5}
 .detail h3{margin:0 0 6px;font-size:15px;color:var(--navy)}
 .detail table{width:100%;border-collapse:collapse}
 .detail td{padding:3px 0;border-bottom:1px solid #f0f4f6}
@@ -58,9 +75,9 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
 <header>
   <div class="wrap">
     <p class="eyebrow">European Port Traffic Explorer · Map view</p>
-    <h1>The geography of European port traffic, year by year</h1>
-    <p class="lead">Pick a metric, press play and watch 2019 to the present unfold.
-    <a class="back" href="index.html">← Back to the charts</a></p>
+    <h1>Vessel arrivals across Europe, year by year</h1>
+    <p class="lead">Press play and watch the geography of port traffic move from 2019 to the
+    latest complete year. <a class="back" href="index.html">← Back to the charts</a></p>
   </div>
 </header>
 
@@ -68,27 +85,26 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
 <div class="wrap">
 
   <div class="controls">
-    <div>
-      <h4>Metric</h4>
-      <select id="sel-metric">
-        <option value="arrivals" selected>Arrivals (calls per year)</option>
-        <option value="growth">Growth vs 2019 (%)</option>
-        <option value="container">Container share (%)</option>
-        <option value="avggt">Average vessel size (GT per call)</option>
-      </select>
-    </div>
+    <button id="play">▶ Play</button>
     <div class="yearbox">
-      <h4 style="margin:0">Year</h4>
       <input type="range" id="year-slider" min="0" max="0" step="1" value="0">
       <span id="year-label">–</span>
-      <button id="play">▶ Play</button>
+    </div>
+    <div class="total-chip">
+      <div class="n" id="total-n">–</div>
+      <div class="l" id="total-l">arrivals, 15 ports</div>
     </div>
   </div>
 
-  <div class="mapbox">
-    <svg id="map-svg"></svg>
-    <div class="legend" id="legend"></div>
-    <div class="detail" id="detail"><span class="close" id="detail-close">×</span><div id="detail-body"></div></div>
+  <div class="layout">
+    <div class="mapbox">
+      <svg id="map-svg"></svg>
+      <div class="detail" id="detail"><span class="close" id="detail-close">×</span><div id="detail-body"></div></div>
+    </div>
+    <div class="rank">
+      <h3 id="rank-title">Ranking</h3>
+      <div id="rank-body"></div>
+    </div>
   </div>
 
   <div class="note" id="map-note"></div>
@@ -106,25 +122,16 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
 <script>
 (function () {
   "use strict";
-  var D, MAP, years = [], yi = 0, metric = "arrivals", timer = null, detailPort = null;
+  var D, MAP, years = [], yi = 0, timer = null, detailPort = null, maxNr = 1;
 
   function el(id) { return document.getElementById(id); }
-  function fmt(n, d) { return n === null || n === undefined ? "–"
-    : Number(n).toLocaleString("en-GB", { maximumFractionDigits: d || 0 }); }
+  function fmt(n) { return n === null || n === undefined ? "–"
+    : Number(n).toLocaleString("en-GB", { maximumFractionDigits: 0 }); }
   function pname(c) { var p = D.ports.find(function (x) { return x.code === c; }); return p ? p.name : c; }
 
-  // soma anual (null se ano incompleto para o porto)
-  function yearVal(code, type, year) {
-    var row = (D.series[code] || {})[type];
-    if (!row) return null;
-    var s = 0, n = 0;
-    D.quarters.forEach(function (q, i) {
-      if (q.indexOf(String(year)) === 0 && row[i] !== null && row[i] !== undefined) { s += row[i]; n++; }
-    });
-    return n === 4 ? s : null;
-  }
-  function yearGT(code, year) {
-    var row = D.series_gt ? D.series_gt[code] : null;
+  // soma anual de chegadas (null se o porto nao tem os 4 trimestres)
+  function arrivals(code, year) {
+    var row = (D.series[code] || {}).TOTAL;
     if (!row) return null;
     var s = 0, n = 0;
     D.quarters.forEach(function (q, i) {
@@ -133,114 +140,84 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
     return n === 4 ? s : null;
   }
 
-  // valor da métrica para um porto num ano; {v: valor, s: valor para tamanho da bolha}
-  function metricVal(code, year) {
-    var nr = yearVal(code, "TOTAL", year);
-    if (nr === null) return null;
-    if (metric === "arrivals") return { v: nr, s: nr };
-    if (metric === "growth") {
-      var base = yearVal(code, "TOTAL", 2019);
-      if (base === null || year === 2019) return base === null ? null : { v: 0, s: nr };
-      return { v: (nr / base - 1) * 100, s: nr };
-    }
-    if (metric === "container") {
-      var c = yearVal(code, "ODC_CNT", year) || 0;
-      return { v: c / nr * 100, s: nr };
-    }
-    var gt = yearGT(code, year);
-    if (gt === null) return null;
-    return { v: gt * 1000 / nr, s: nr };
-  }
-
-  function colourFor(val) {
-    if (metric === "growth") {
-      if (val > 1) return "#2fa36b";
-      if (val < -1) return "#d6584f";
-      return "#8ba0ac";
-    }
-    return "#0fb5ba";
-  }
-
-  function metricLabel() {
-    return { arrivals: "arrivals", growth: "growth vs 2019",
-             container: "container share", avggt: "average GT per call" }[metric];
-  }
-  function fmtMetric(v) {
-    if (metric === "growth") return (v >= 0 ? "+" : "") + v.toFixed(1) + "%";
-    if (metric === "container") return v.toFixed(1) + "%";
-    return fmt(v);
-  }
-
-  function drawMap() {
+  function draw() {
     var year = years[yi];
     el("year-label").textContent = year;
+
+    // total do ano (portos com dado)
+    var total = 0, com = 0;
+    D.ports.forEach(function (p) {
+      var a = arrivals(p.code, year);
+      if (a !== null) { total += a; com++; }
+    });
+    el("total-n").textContent = fmt(total);
+    el("total-l").textContent = "arrivals in " + year + ", " + com + " ports";
+
+    // ----- mapa -----
     var svg = el("map-svg");
     var vb = MAP.viewBox.split(" ");
     svg.setAttribute("viewBox", MAP.viewBox);
     var out = '<rect class="sea" width="' + vb[2] + '" height="' + vb[3] + '"/>';
     out += MAP.paths.map(function (d) { return '<path class="land" d="' + d + '"/>'; }).join("");
-
-    // normalizacao do tamanho pelo maior valor de TODOS os anos (bolhas comparaveis no play)
-    var maxS = 1;
-    D.ports.forEach(function (p) {
-      years.forEach(function (y) {
-        var m = (function () { var keep = metric; metric = "arrivals";
-          var r = metricVal(p.code, y); metric = keep; return r; })();
-        if (m && m.s > maxS) maxS = m.s;
-      });
-    });
-
     var labels = "";
     D.ports.forEach(function (p) {
       var xy = MAP.ports_xy[p.code];
-      var m = metricVal(p.code, year);
       if (!xy) return;
-      if (m === null) {
-        out += '<circle data-c="' + p.code + '" cx="' + xy[0] + '" cy="' + xy[1] +
-          '" r="3.5" fill="#c9d4da"><title>' + pname(p.code) + " — no complete data for " + year + "</title></circle>";
+      var a = arrivals(p.code, year);
+      if (a === null) {
+        out += '<circle class="nodata" data-c="' + p.code + '" cx="' + xy[0] + '" cy="' + xy[1] +
+          '" r="3.5"><title>' + pname(p.code) + " — no complete data for " + year + "</title></circle>";
         return;
       }
-      var r = 5 + 24 * Math.sqrt(m.s / maxS);
-      out += '<circle data-c="' + p.code + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + r.toFixed(1) +
-        '" fill="' + colourFor(m.v) + '" fill-opacity="0.55" stroke="' + colourFor(m.v) +
-        '" stroke-width="2"><title>' + pname(p.code) + " " + year + " — " + fmtMetric(m.v) + " (" +
-        metricLabel() + "), " + fmt(m.s) + " arrivals</title></circle>";
-      if (r > 16 || p.code === detailPort) {
-        labels += '<text class="plabel" x="' + xy[0] + '" y="' + (xy[1] - r - 4) +
+      var prev = yi > 0 ? arrivals(p.code, years[yi - 1]) : null;
+      var dtxt = prev ? ((a / prev - 1) * 100 >= 0 ? "+" : "") + ((a / prev - 1) * 100).toFixed(1) + "% vs " + years[yi - 1] : "";
+      var r = 5 + 25 * Math.sqrt(a / maxNr);
+      out += '<circle class="port" data-c="' + p.code + '" cx="' + xy[0] + '" cy="' + xy[1] +
+        '" r="' + r.toFixed(1) + '"><title>' + pname(p.code) + " " + year + " — " + fmt(a) +
+        " arrivals" + (dtxt ? " (" + dtxt + ")" : "") + "</title></circle>";
+      if (r > 13 || p.code === detailPort) {
+        labels += '<text class="plabel" x="' + xy[0] + '" y="' + (xy[1] - r - 5) +
           '" text-anchor="middle">' + pname(p.code) + "</text>";
+        if (r > 20) {
+          labels += '<text class="pval" x="' + xy[0] + '" y="' + (xy[1] + 3.5) +
+            '" text-anchor="middle">' + fmt(a) + "</text>";
+        }
       }
     });
     svg.innerHTML = out + labels;
-    drawLegend();
-    if (detailPort) drawDetail(detailPort);
-  }
 
-  function drawLegend() {
-    var lg = "";
-    if (metric === "growth") {
-      lg = '<span><span class="sw" style="background:#2fa36b"></span>above 2019</span>' +
-           '<span><span class="sw" style="background:#d6584f"></span>below 2019</span>' +
-           '<span><span class="sw" style="background:#8ba0ac"></span>±1%</span>';
-    } else {
-      lg = '<span><span class="sw" style="background:#0fb5ba"></span>' + metricLabel() + "</span>";
-    }
-    lg += "<span>Bubble size: arrivals in the year (same scale across years)</span>" +
-          '<span><span class="sw" style="background:#c9d4da;width:9px;height:9px"></span>no complete data</span>';
-    el("legend").innerHTML = lg;
+    // ----- ranking lateral -----
+    el("rank-title").textContent = "Arrivals in " + year;
+    var rows = D.ports.map(function (p) {
+      var a = arrivals(p.code, year);
+      var prev = yi > 0 ? arrivals(p.code, years[yi - 1]) : null;
+      return { code: p.code, name: p.name, a: a,
+        d: (a !== null && prev) ? (a / prev - 1) * 100 : null };
+    }).sort(function (x, y) { return (y.a || -1) - (x.a || -1); });
+    var maxA = rows[0].a || 1;
+    el("rank-body").innerHTML = rows.map(function (r, i) {
+      var dcls = r.d === null ? "na" : (r.d >= 0 ? "up" : "down");
+      var dtx = r.d === null ? "·" : (r.d >= 0 ? "▲" : "▼") + Math.abs(r.d).toFixed(1) + "%";
+      var w = r.a ? (r.a / maxA * 100).toFixed(0) : 0;
+      return '<div class="rank-row" data-c="' + r.code + '" style="background:linear-gradient(90deg,#e6f7f8 ' +
+        w + '%,transparent ' + w + '%)"><span class="pos">' + (i + 1) + '</span><span class="nm">' +
+        r.name + '</span><span class="val">' + (r.a === null ? "–" : fmt(r.a)) +
+        '</span><span class="d ' + dcls + '">' + dtx + "</span></div>";
+    }).join("");
+
+    if (detailPort) drawDetail(detailPort);
   }
 
   function drawDetail(code) {
     detailPort = code;
     var year = years[yi];
-    var nr = yearVal(code, "TOTAL", year);
-    var base = yearVal(code, "TOTAL", 2019);
-    var cnt = nr ? (yearVal(code, "ODC_CNT", year) || 0) / nr * 100 : null;
-    var gt = yearGT(code, year);
+    var a = arrivals(code, year);
+    var base = arrivals(code, 2019);
+    var prev = yi > 0 ? arrivals(code, years[yi - 1]) : null;
     var rows = [
-      ["Arrivals " + year, nr === null ? "–" : fmt(nr)],
-      ["vs 2019", (nr !== null && base) ? ((nr / base - 1) * 100 >= 0 ? "+" : "") + ((nr / base - 1) * 100).toFixed(1) + "%" : "–"],
-      ["Container share", cnt === null ? "–" : cnt.toFixed(1) + "%"],
-      ["Avg vessel size", (gt !== null && nr) ? fmt(gt * 1000 / nr) + " GT" : "–"],
+      ["Arrivals " + year, a === null ? "–" : fmt(a)],
+      ["vs previous year", (a !== null && prev) ? ((a / prev - 1) * 100 >= 0 ? "+" : "") + ((a / prev - 1) * 100).toFixed(1) + "%" : "–"],
+      ["vs 2019", (a !== null && base) ? ((a / base - 1) * 100 >= 0 ? "+" : "") + ((a / base - 1) * 100).toFixed(1) + "%" : "–"],
     ];
     el("detail-body").innerHTML = "<h3>" + pname(code) + "</h3><table>" +
       rows.map(function (r) { return "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td></tr>"; }).join("") +
@@ -251,14 +228,14 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
   function step() {
     yi = (yi + 1) % years.length;
     el("year-slider").value = yi;
-    drawMap();
+    draw();
     if (yi === years.length - 1) stop();
   }
   function play() {
     if (timer) { stop(); return; }
-    if (yi === years.length - 1) yi = -1;
+    if (yi === years.length - 1) { yi = 0; el("year-slider").value = 0; draw(); }
     el("play").textContent = "⏸ Pause";
-    timer = setInterval(step, 1100);
+    timer = setInterval(step, 1200);
   }
   function stop() {
     clearInterval(timer); timer = null;
@@ -267,15 +244,12 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
 
   document.addEventListener("click", function (e) {
     if (e.target.id === "play") { play(); return; }
-    if (e.target.id === "detail-close") { detailPort = null; el("detail").style.display = "none"; drawMap(); return; }
-    var c = e.target.closest ? e.target.closest("circle[data-c]") : null;
-    if (c) drawDetail(c.getAttribute("data-c"));
+    if (e.target.id === "detail-close") { detailPort = null; el("detail").style.display = "none"; draw(); return; }
+    var t = e.target.closest ? (e.target.closest("circle[data-c]") || e.target.closest(".rank-row")) : null;
+    if (t) drawDetail(t.getAttribute("data-c"));
   });
   document.addEventListener("input", function (e) {
-    if (e.target.id === "year-slider") { stop(); yi = +e.target.value; drawMap(); }
-  });
-  document.addEventListener("change", function (e) {
-    if (e.target.id === "sel-metric") { metric = e.target.value; drawMap(); }
+    if (e.target.id === "year-slider") { stop(); yi = +e.target.value; draw(); }
   });
 
   Promise.all([
@@ -283,27 +257,33 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
     fetch("europe_map.json", { cache: "no-store" }).then(function (r) { return r.json(); })
   ]).then(function (both) {
     D = both[0]; MAP = both[1];
-    // anos ate o ano de referencia (ultimo ano-calendario completo em todos os
-    // portos); anos parciais como 2025 ficam fora ate o Eurostat fechar
+    // anos ate o ano de referencia (ultimo ano-calendario completo em todos os portos)
     var ys = [];
     D.quarters.forEach(function (q) {
       var y = +q.slice(0, 4);
       if (y <= +D.ref_year && ys.indexOf(y) < 0 &&
-          D.ports.some(function (p) { return yearVal(p.code, "TOTAL", y) !== null; })) {
+          D.ports.some(function (p) { return arrivals(p.code, y) !== null; })) {
         ys.push(y);
       }
     });
     years = ys;
-    yi = years.indexOf(+D.ref_year);
-    if (yi < 0) yi = years.length - 1;
+    // escala fixa das bolhas: maior valor de todos os anos
+    D.ports.forEach(function (p) {
+      years.forEach(function (y) {
+        var a = arrivals(p.code, y);
+        if (a && a > maxNr) maxNr = a;
+      });
+    });
+    yi = years.length - 1;
     var sl = el("year-slider");
     sl.max = years.length - 1; sl.value = yi;
     el("map-note").innerHTML = "<strong>How to read it.</strong> Bubble size is the number of " +
-      "arrivals in the selected year, on the same scale across all years, so pressing play shows " +
-      "real movement. The growth metric colours ports green (above 2019) or red (below 2019). " +
-      "Antwerp-Bruges and HAROPA report as merged entities only from 2022 and appear grey before " +
-      "that. Click a bubble for the port's card. Data: Eurostat, closed calendar years.";
-    drawMap();
+      "vessel arrivals in the year, on the same scale across all years, so pressing play shows " +
+      "real movement. The side ranking reorders live, with the change versus the previous year. " +
+      "Click a bubble or a ranking row for the port's card. Grey dots mean the port has no " +
+      "complete calendar year yet (Antwerp-Bruges and HAROPA report as merged entities only " +
+      "from 2022). Data: Eurostat, closed calendar years (currently up to " + D.ref_year + ").";
+    draw();
   }).catch(function () {
     document.querySelector("main .wrap").insertAdjacentHTML("afterbegin",
       "<p style='color:#d6584f'>data.json / europe_map.json could not be loaded. Serve over HTTP.</p>");

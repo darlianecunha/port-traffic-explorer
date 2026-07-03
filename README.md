@@ -13,10 +13,9 @@ one JSON file, Chart.js from CDN.
 
 - **Automatic highlights**: fastest-growing and steepest-declining port vs 2019, most
   container-dependent port and largest average vessel, computed live from the data
-- **Animated map view** (`map.html`): pick a metric (arrivals, growth vs 2019 with
-  diverging colours, container share, average vessel size) and press play to watch the
-  geography change year by year on a Natural Earth basemap; click a bubble for the
-  port's card
+- **Animated map view** (`map.html`): vessel arrivals on a Natural Earth basemap with a
+  play button that moves year by year, a live side ranking that reorders with each year
+  (with change vs the previous year), a yearly total counter, and a port card on click
 - **Change vs 2019**: recovery chart comparing the reference year with the pre-pandemic
   baseline for all ports
 - **Select any combination of ports** (chips, map bubbles or ranking-table rows), or hit

@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software or its data, please cite it as below."
+type: software
+title: "European Port Traffic Explorer: annual vessel arrivals by ship type and size at 15 major EU ports"
+authors:
+  - family-names: "Cunha"
+    given-names: "Darliane Ribeiro"
+    # orcid: "https://orcid.org/SEU-ORCID-AQUI"
+version: 1.0.0
+date-released: 2026-07-02
+url: "https://port-traffic-explorer.vercel.app/"
+license: CC-BY-4.0
+keywords:
+  - "port traffic"
+  - "Eurostat"
+  - "vessel arrivals"
+  - "European ports"
+  - "ship types"
+  - "maritime statistics"
+  - "port benchmarking"
