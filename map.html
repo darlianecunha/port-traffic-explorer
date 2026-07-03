@@ -36,16 +36,18 @@ border-radius:8px;cursor:pointer}
 .mapbox{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
 box-shadow:var(--shadow);padding:10px;position:relative}
 #map-svg{width:100%;height:auto;display:block}
-#map-svg .sea{fill:#eaf4f9}
-#map-svg .land{fill:#e4ebef;stroke:#c6d4db;stroke-width:.6}
-#map-svg circle.port{cursor:pointer;fill:var(--teal);fill-opacity:.5;stroke:var(--teald);
-stroke-width:2;transition:r .6s ease}
-#map-svg circle.port:hover{fill-opacity:.75}
-#map-svg circle.nodata{fill:#c9d4da;stroke:none}
-#map-svg text.plabel{font:600 11.5px var(--font);fill:#20343f;paint-order:stroke;stroke:#fff;
+#map-svg .sea{fill:#e9f3f8}
+#map-svg .land{fill:#e2e9ed;stroke:#c2d1d9;stroke-width:.6}
+#map-svg circle.port{cursor:pointer;fill:#0fb5ba;fill-opacity:.6;stroke:#0a7c80;
+stroke-width:1.8;transition:r .6s ease}
+#map-svg circle.port:hover{fill-opacity:.8}
+#map-svg circle.nodata{fill:#c3ced5;stroke:none}
+#map-svg line.leader{stroke:#8fa5b0;stroke-width:.9}
+#map-svg text.pname{font:600 11.5px var(--font);fill:#1c2f3a;paint-order:stroke;stroke:#fff;
 stroke-width:3;stroke-linejoin:round;pointer-events:none}
-#map-svg text.pval{font:700 10.5px var(--font);fill:#075e61;paint-order:stroke;stroke:#fff;
+#map-svg text.pval{font:700 11px var(--font);fill:#0a7c80;paint-order:stroke;stroke:#fff;
 stroke-width:3;pointer-events:none}
+#map-svg text.pval.grey{fill:#93a5ae;font-weight:600}
 .rank{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
 box-shadow:var(--shadow);padding:14px 14px 8px}
 .rank h3{margin:0 0 10px;font-size:14px;color:var(--navy)}
@@ -124,6 +126,31 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
   "use strict";
   var D, MAP, years = [], yi = 0, timer = null, detailPort = null, maxNr = 1;
 
+  // Ancora fixa do rotulo por porto (calibrada nas coordenadas do basemap):
+  // e/w/n/s e diagonais; rotulo sempre FORA da bolha, numero junto do nome
+  var LBL = {
+    NL_0NLRTM: "ne",  BE_0BE003: "w",   DE_1DEHAM: "e",  DE_1DEBRV: "nw",
+    ES_2ESVLC: "w",   ES_2ESALG: "s",   ES_2ESBCN: "e",  EL_0GRPIR: "n",
+    FR_2FRMRS: "sw",  FR_1FR001: "s",   IT_0ITGOA: "n",  IT_0ITGIT: "e",
+    PT_0PTSIE: "n",   RO_0ROCND: "w",   PL_0PLGDN: "n"
+  };
+  var SHORT = { FR_1FR001: "HAROPA", BE_0BE003: "Antwerp-Bruges" };
+
+  // posicao do bloco de rotulo (2 linhas) relativa a bolha
+  function labelPos(dir, cx, cy, r) {
+    var g = 9, d = (r + g) * 0.72;
+    switch (dir) {
+      case "e":  return { x: cx + r + g, y: cy - 2, a: "start" };
+      case "w":  return { x: cx - r - g, y: cy - 2, a: "end" };
+      case "n":  return { x: cx, y: cy - r - g - 12, a: "middle" };
+      case "s":  return { x: cx, y: cy + r + g + 9, a: "middle" };
+      case "ne": return { x: cx + d + 4, y: cy - d - 8, a: "start" };
+      case "nw": return { x: cx - d - 4, y: cy - d - 8, a: "end" };
+      case "se": return { x: cx + d + 4, y: cy + d + 8, a: "start" };
+      default:   return { x: cx - d - 4, y: cy + d + 8, a: "end" };   // sw
+    }
+  }
+
   function el(id) { return document.getElementById(id); }
   function fmt(n) { return n === null || n === undefined ? "–"
     : Number(n).toLocaleString("en-GB", { maximumFractionDigits: 0 }); }
@@ -163,26 +190,32 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
     D.ports.forEach(function (p) {
       var xy = MAP.ports_xy[p.code];
       if (!xy) return;
+      var cx = xy[0], cy = xy[1];
       var a = arrivals(p.code, year);
-      if (a === null) {
-        out += '<circle class="nodata" data-c="' + p.code + '" cx="' + xy[0] + '" cy="' + xy[1] +
-          '" r="3.5"><title>' + pname(p.code) + " — no complete data for " + year + "</title></circle>";
-        return;
-      }
+      var nm = SHORT[p.code] || p.name;
+      var r = a === null ? 3.5 : 5 + 25 * Math.sqrt(a / maxNr);
       var prev = yi > 0 ? arrivals(p.code, years[yi - 1]) : null;
-      var dtxt = prev ? ((a / prev - 1) * 100 >= 0 ? "+" : "") + ((a / prev - 1) * 100).toFixed(1) + "% vs " + years[yi - 1] : "";
-      var r = 5 + 25 * Math.sqrt(a / maxNr);
-      out += '<circle class="port" data-c="' + p.code + '" cx="' + xy[0] + '" cy="' + xy[1] +
-        '" r="' + r.toFixed(1) + '"><title>' + pname(p.code) + " " + year + " — " + fmt(a) +
-        " arrivals" + (dtxt ? " (" + dtxt + ")" : "") + "</title></circle>";
-      if (r > 13 || p.code === detailPort) {
-        labels += '<text class="plabel" x="' + xy[0] + '" y="' + (xy[1] - r - 5) +
-          '" text-anchor="middle">' + pname(p.code) + "</text>";
-        if (r > 20) {
-          labels += '<text class="pval" x="' + xy[0] + '" y="' + (xy[1] + 3.5) +
-            '" text-anchor="middle">' + fmt(a) + "</text>";
-        }
+      var dtxt = (a !== null && prev) ? ((a / prev - 1) * 100 >= 0 ? "+" : "") +
+        ((a / prev - 1) * 100).toFixed(1) + "% vs " + years[yi - 1] : "";
+      var tip = "<title>" + pname(p.code) + " " + year + " — " +
+        (a === null ? "no complete data" : fmt(a) + " arrivals" + (dtxt ? " (" + dtxt + ")" : "")) +
+        "</title>";
+      out += '<circle class="' + (a === null ? "nodata" : "port") + '" data-c="' + p.code +
+        '" cx="' + cx + '" cy="' + cy + '" r="' + r.toFixed(1) + '">' + tip + "</circle>";
+
+      // rotulo de duas linhas (nome + numero), sempre fora da bolha
+      var L = labelPos(LBL[p.code] || "e", cx, cy, r);
+      var diag = "ne nw se sw".indexOf(LBL[p.code]) >= 0;
+      if (diag) {
+        var vx = L.a === "start" ? -3 : 3, vy = L.y < cy ? 10 : -12;
+        out += '<line class="leader" x1="' + (L.x + vx) + '" y1="' + (L.y + (L.y < cy ? 3 : -9)) +
+          '" x2="' + (cx + (L.x > cx ? r * 0.72 : -r * 0.72)) +
+          '" y2="' + (cy + (L.y < cy ? -r * 0.72 : r * 0.72)) + '"/>';
       }
+      labels += '<text class="pname" x="' + L.x + '" y="' + L.y + '" text-anchor="' + L.a + '">' +
+        nm + "</text>";
+      labels += '<text class="pval' + (a === null ? " grey" : "") + '" x="' + L.x + '" y="' +
+        (L.y + 12.5) + '" text-anchor="' + L.a + '">' + (a === null ? "no data" : fmt(a)) + "</text>";
     });
     svg.innerHTML = out + labels;
 
