@@ -13,8 +13,10 @@ one JSON file, Chart.js from CDN.
 
 - **Automatic highlights**: fastest-growing and steepest-declining port vs 2019, most
   container-dependent port and largest average vessel, computed live from the data
-- **Interactive map of Europe**: bubbles sized by arrivals in the reference year; click a
-  bubble to add or remove a port from every chart
+- **Animated map view** (`map.html`): pick a metric (arrivals, growth vs 2019 with
+  diverging colours, container share, average vessel size) and press play to watch the
+  geography change year by year on a Natural Earth basemap; click a bubble for the
+  port's card
 - **Change vs 2019**: recovery chart comparing the reference year with the pre-pandemic
   baseline for all ports
 - **Select any combination of ports** (chips, map bubbles or ranking-table rows), or hit
@@ -34,8 +36,9 @@ Constanta, Gdansk. Adding a port is one line in `build_data.py`.
 
 | File | Purpose |
 |---|---|
-| `index.html` | The interactive site (single file) |
-| `data.json` | Aggregated indicators consumed by the page |
+| `index.html` | The charts page (single file) |
+| `map.html` | The animated map view (single file) |
+| `data.json` | Aggregated indicators consumed by both pages |
 | `build_data.py` | Downloads fresh data from the Eurostat API and rebuilds `data.json` |
 | `europe_map.json` | Lightweight SVG basemap + port coordinates for the bubble map |
 | `make_map.py` | Regenerates the basemap (Natural Earth, public domain); run only if the port list changes |

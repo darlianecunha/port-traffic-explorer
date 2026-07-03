@@ -14,16 +14,18 @@ import urllib.request
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-GEOJSON_URL = ("https://raw.githubusercontent.com/johan/world.geo.json/"
-               "master/countries.geo.json")
+# Natural Earth 50m (traçado fino). Cache local opcional em /tmp/ne50m.geojson.
+GEOJSON_URL = ("https://raw.githubusercontent.com/nvkelso/natural-earth-vector/"
+               "master/geojson/ne_50m_admin_0_countries.geojson")
+LOCAL_CACHE = Path("/tmp/ne50m.geojson")
 
 COUNTRIES = {
     "Portugal", "Spain", "France", "Italy", "Greece", "Netherlands", "Belgium",
     "Germany", "Poland", "Romania", "United Kingdom", "Ireland", "Norway",
     "Sweden", "Denmark", "Finland", "Estonia", "Latvia", "Lithuania",
-    "Switzerland", "Austria", "Czech Republic", "Slovakia", "Hungary",
+    "Switzerland", "Austria", "Czechia", "Slovakia", "Hungary",
     "Slovenia", "Croatia", "Bosnia and Herzegovina", "Serbia", "Montenegro",
-    "Albania", "Macedonia", "Bulgaria", "Moldova", "Ukraine", "Belarus",
+    "Albania", "North Macedonia", "Bulgaria", "Moldova", "Ukraine", "Belarus",
     "Luxembourg", "Turkey", "Morocco", "Algeria", "Tunisia", "Malta", "Cyprus",
     "Kosovo",
 }
@@ -78,11 +80,17 @@ def ring_to_path(ring):
 
 
 def main():
-    print("Baixando contorno dos países (Natural Earth, domínio público)...")
-    geo = json.load(urllib.request.urlopen(GEOJSON_URL, timeout=60))
+    if LOCAL_CACHE.exists():
+        print("Usando cache local:", LOCAL_CACHE)
+        geo = json.load(open(LOCAL_CACHE, encoding="utf-8"))
+    else:
+        print("Baixando contorno dos países (Natural Earth 50m, domínio público)...")
+        geo = json.load(urllib.request.urlopen(GEOJSON_URL, timeout=120))
     paths = []
     for f in geo["features"]:
-        if f["properties"].get("name") not in COUNTRIES:
+        props = f["properties"]
+        nome = props.get("ADMIN") or props.get("name")
+        if nome not in COUNTRIES:
             continue
         geom = f["geometry"]
         polys = geom["coordinates"] if geom["type"] == "MultiPolygon" else [geom["coordinates"]]

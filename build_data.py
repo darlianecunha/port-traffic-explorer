@@ -103,12 +103,15 @@ def main():
 
     # 2a passada: series alinhadas a grade comum de trimestres
     series = {}
+    series_gt = {}
     for code in PORTS:
         series[code] = {}
         for v in raw[code]["cats"]["vessel"]:
             row = [get(code, "TOTAL", v, "NR", t) for t in quarters]
             if any(x is not None for x in row):
                 series[code][v] = row
+        # tonelagem bruta total (mil GT) por trimestre, para porte medio por ano
+        series_gt[code] = [get(code, "TOTAL", "TOTAL", "THS_GT", t) for t in quarters]
 
     # Ano de referencia: ultimo ano-calendario com os 4 trimestres reportados
     # em TODOS os portos (mesma convencao que sera usada no Brasil/ANTAQ)
@@ -157,6 +160,7 @@ def main():
         "vessel_labels": vessel_labels,
         "size_groups": [g[0] for g in SIZE_GROUPS],
         "series": series,
+        "series_gt": series_gt,
         "size_year": size_year,
         "totals_year": totals_year,
     }

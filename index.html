@@ -77,6 +77,7 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
     size class, from official Eurostat maritime statistics. Select ports, pick a ship type and
     compare fleet profiles: who receives the container mega-ships, who lives off tankers, and how
     traffic moved since 2019.</p>
+    <p style="margin:14px 0 0"><a href="map.html" style="display:inline-block;background:var(--teal);color:#fff;font-weight:600;padding:9px 18px;border-radius:8px">Open the map view →</a></p>
   </div>
 </header>
 
@@ -84,12 +85,6 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
 <div class="wrap">
 
   <div class="hl-row" id="highlights"></div>
-
-  <div class="box wide" style="margin-bottom:20px">
-    <h3 id="map-title">Where the traffic is</h3>
-    <p class="hint">Bubble size = arrivals in the reference year. Click a bubble to add or remove the port from the charts.</p>
-    <div style="max-width:820px;margin:0 auto"><svg id="map-svg" style="width:100%;height:auto"></svg></div>
-  </div>
 
   <div class="controls">
     <h4>Ports</h4>
@@ -379,29 +374,7 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
         scales: { y: { ticks: { callback: function (v) { return v + "%"; } } } } } });
   }
 
-  var MAP;   // europe_map.json
-  function drawMap() {
-    if (!MAP) return;
-    var svg = el("map-svg");
-    svg.setAttribute("viewBox", MAP.viewBox);
-    var land = MAP.paths.map(function (d) { return '<path class="land" d="' + d + '"/>'; }).join("");
-    var maxNr = Math.max.apply(null, D.ports.map(function (p) { return (D.totals_year[p.code] || {}).nr || 1; }));
-    var bubbles = D.ports.map(function (p) {
-      var xy = MAP.ports_xy[p.code];
-      if (!xy) return "";
-      var nr = (D.totals_year[p.code] || {}).nr || 0;
-      var r = 5 + 24 * Math.sqrt(nr / maxNr);
-      var on = selected.indexOf(p.code) >= 0;
-      return '<circle data-c="' + p.code + '" class="' + (on ? "on" : "off") + '" cx="' + xy[0] +
-        '" cy="' + xy[1] + '" r="' + r.toFixed(1) + '"><title>' + p.name + " — " +
-        fmt(nr) + " arrivals in " + D.ref_year + "</title></circle>" +
-        (on ? '<text x="' + xy[0] + '" y="' + (xy[1] - r - 4) + '" text-anchor="middle">' + p.name + "</text>" : "");
-    }).join("");
-    svg.innerHTML = land + bubbles;
-    el("map-title").textContent = "Where the traffic is — " + D.ref_year;
-  }
-
-  function drawAll() { drawSeries(); drawMix(); drawSize(); drawRank(); drawHighlights(); drawRecovery(); drawMap(); }
+  function drawAll() { drawSeries(); drawMix(); drawSize(); drawRank(); drawHighlights(); drawRecovery(); }
 
   var DEFAULT_SEL = selected.slice();
   document.addEventListener("click", function (e) {
@@ -435,14 +408,9 @@ footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
     if (e.target.id === "sel-type") { shipType = e.target.value; drawSeries(); }
   });
 
-  Promise.all([
-    fetch("data.json", { cache: "no-store" }).then(function (r) { return r.json(); }),
-    fetch("europe_map.json", { cache: "no-store" }).then(function (r) { return r.json(); })
-      .catch(function () { return null; })
-  ])
-    .then(function (both) {
-      var data = both[0];
-      MAP = both[1];
+  fetch("data.json", { cache: "no-store" })
+    .then(function (r) { return r.json(); })
+    .then(function (data) {
       D = data;
       el("method").innerHTML = "<strong>Source &amp; method.</strong> " + D.meta.source +
         ", retrieved from the free Eurostat dissemination API on " + D.meta.generated +

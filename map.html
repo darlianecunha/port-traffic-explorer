@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Map view — European Port Traffic Explorer</title>
+<meta name="description" content="Animated map of vessel traffic at 15 major European ports: arrivals, growth since 2019, container share and average vessel size, year by year.">
+<style>
+:root{--navy:#0b2239;--navy2:#12304d;--teal:#0fb5ba;--teald:#0a8f93;--ink:#1c2b36;--muted:#5b6b78;
+--line:#e2e8ee;--bg:#f5f8fa;--card:#fff;--good:#2fa36b;--bad:#d6584f;--radius:12px;
+--shadow:0 1px 3px rgba(11,34,57,.08),0 8px 24px rgba(11,34,57,.06);
+--font:"Segoe UI","Helvetica Neue",Arial,system-ui,sans-serif}
+*{box-sizing:border-box}body{margin:0;font-family:var(--font);color:var(--ink);background:var(--bg)}
+a{color:var(--teald);text-decoration:none}
+header{background:linear-gradient(120deg,var(--navy),var(--navy2));color:#fff;padding:26px 20px 22px}
+.wrap{max-width:1100px;margin:0 auto;padding:0 20px}
+.eyebrow{font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--teal);margin:0 0 8px}
+h1{margin:0 0 6px;font-size:24px}
+header p.lead{margin:0;color:#cfdae4;font-size:14px}
+header a.back{color:#9fdfe2;font-size:13px}
+main{padding:20px 0 10px}
+.controls{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+padding:14px 18px;box-shadow:var(--shadow);margin-bottom:16px;display:flex;flex-wrap:wrap;
+gap:22px;align-items:center}
+.controls h4{margin:0 0 6px;font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted)}
+select{font:14px var(--font);padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:#fff}
+.yearbox{display:flex;align-items:center;gap:12px;flex:1;min-width:280px}
+#year-slider{flex:1}
+#year-label{font:700 22px var(--font);color:var(--navy);min-width:64px;text-align:center}
+#play{border:0;background:var(--navy);color:#fff;font:600 13px var(--font);padding:8px 16px;
+border-radius:8px;cursor:pointer}
+#play:hover{background:var(--navy2)}
+.mapbox{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+box-shadow:var(--shadow);padding:10px;position:relative}
+#map-svg{width:100%;height:auto;display:block}
+#map-svg .sea{fill:#eef6fa}
+#map-svg .land{fill:#e6edf1;stroke:#c8d6dd;stroke-width:.6}
+#map-svg circle{cursor:pointer;transition:r .5s ease,fill .5s ease}
+#map-svg text.plabel{font:600 11.5px var(--font);fill:#20343f;paint-order:stroke;stroke:#fff;
+stroke-width:3;stroke-linejoin:round;pointer-events:none}
+.legend{display:flex;flex-wrap:wrap;gap:18px;align-items:center;padding:10px 8px 4px;
+font-size:12.5px;color:var(--muted)}
+.legend .sw{display:inline-block;width:13px;height:13px;border-radius:50%;margin-right:5px;vertical-align:-2px}
+.detail{position:absolute;top:18px;right:18px;width:250px;background:#fff;border:1px solid var(--line);
+border-radius:10px;box-shadow:var(--shadow);padding:14px 16px;font-size:13px;display:none}
+.detail h3{margin:0 0 6px;font-size:15px;color:var(--navy)}
+.detail table{width:100%;border-collapse:collapse}
+.detail td{padding:3px 0;border-bottom:1px solid #f0f4f6}
+.detail td:last-child{text-align:right;font-weight:600;color:var(--navy)}
+.detail .close{position:absolute;top:8px;right:11px;cursor:pointer;color:var(--muted);font-weight:700}
+.note{background:#eef6f7;border-left:4px solid var(--teal);border-radius:6px;padding:12px 15px;
+font-size:13px;color:#28414f;line-height:1.5;margin:16px 0 24px}
+footer{border-top:1px solid var(--line);margin-top:26px;padding:16px 0 28px;font-size:13px;color:var(--muted)}
+footer .wrap{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <p class="eyebrow">European Port Traffic Explorer · Map view</p>
+    <h1>The geography of European port traffic, year by year</h1>
+    <p class="lead">Pick a metric, press play and watch 2019 to the present unfold.
+    <a class="back" href="index.html">← Back to the charts</a></p>
+  </div>
+</header>
+
+<main>
+<div class="wrap">
+
+  <div class="controls">
+    <div>
+      <h4>Metric</h4>
+      <select id="sel-metric">
+        <option value="arrivals" selected>Arrivals (calls per year)</option>
+        <option value="growth">Growth vs 2019 (%)</option>
+        <option value="container">Container share (%)</option>
+        <option value="avggt">Average vessel size (GT per call)</option>
+      </select>
+    </div>
+    <div class="yearbox">
+      <h4 style="margin:0">Year</h4>
+      <input type="range" id="year-slider" min="0" max="0" step="1" value="0">
+      <span id="year-label">–</span>
+      <button id="play">▶ Play</button>
+    </div>
+  </div>
+
+  <div class="mapbox">
+    <svg id="map-svg"></svg>
+    <div class="legend" id="legend"></div>
+    <div class="detail" id="detail"><span class="close" id="detail-close">×</span><div id="detail-body"></div></div>
+  </div>
+
+  <div class="note" id="map-note"></div>
+
+</div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Analysis: <strong>Darliane Ribeiro Cunha, PhD</strong></span>
+    <span>Data: © Eurostat · Basemap: Natural Earth (public domain)</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  "use strict";
+  var D, MAP, years = [], yi = 0, metric = "arrivals", timer = null, detailPort = null;
+
+  function el(id) { return document.getElementById(id); }
+  function fmt(n, d) { return n === null || n === undefined ? "–"
+    : Number(n).toLocaleString("en-GB", { maximumFractionDigits: d || 0 }); }
+  function pname(c) { var p = D.ports.find(function (x) { return x.code === c; }); return p ? p.name : c; }
+
+  // soma anual (null se ano incompleto para o porto)
+  function yearVal(code, type, year) {
+    var row = (D.series[code] || {})[type];
+    if (!row) return null;
+    var s = 0, n = 0;
+    D.quarters.forEach(function (q, i) {
+      if (q.indexOf(String(year)) === 0 && row[i] !== null && row[i] !== undefined) { s += row[i]; n++; }
+    });
+    return n === 4 ? s : null;
+  }
+  function yearGT(code, year) {
+    var row = D.series_gt ? D.series_gt[code] : null;
+    if (!row) return null;
+    var s = 0, n = 0;
+    D.quarters.forEach(function (q, i) {
+      if (q.indexOf(String(year)) === 0 && row[i] !== null && row[i] !== undefined) { s += row[i]; n++; }
+    });
+    return n === 4 ? s : null;
+  }
+
+  // valor da métrica para um porto num ano; {v: valor, s: valor para tamanho da bolha}
+  function metricVal(code, year) {
+    var nr = yearVal(code, "TOTAL", year);
+    if (nr === null) return null;
+    if (metric === "arrivals") return { v: nr, s: nr };
+    if (metric === "growth") {
+      var base = yearVal(code, "TOTAL", 2019);
+      if (base === null || year === 2019) return base === null ? null : { v: 0, s: nr };
+      return { v: (nr / base - 1) * 100, s: nr };
+    }
+    if (metric === "container") {
+      var c = yearVal(code, "ODC_CNT", year) || 0;
+      return { v: c / nr * 100, s: nr };
+    }
+    var gt = yearGT(code, year);
+    if (gt === null) return null;
+    return { v: gt * 1000 / nr, s: nr };
+  }
+
+  function colourFor(val) {
+    if (metric === "growth") {
+      if (val > 1) return "#2fa36b";
+      if (val < -1) return "#d6584f";
+      return "#8ba0ac";
+    }
+    return "#0fb5ba";
+  }
+
+  function metricLabel() {
+    return { arrivals: "arrivals", growth: "growth vs 2019",
+             container: "container share", avggt: "average GT per call" }[metric];
+  }
+  function fmtMetric(v) {
+    if (metric === "growth") return (v >= 0 ? "+" : "") + v.toFixed(1) + "%";
+    if (metric === "container") return v.toFixed(1) + "%";
+    return fmt(v);
+  }
+
+  function drawMap() {
+    var year = years[yi];
+    el("year-label").textContent = year;
+    var svg = el("map-svg");
+    var vb = MAP.viewBox.split(" ");
+    svg.setAttribute("viewBox", MAP.viewBox);
+    var out = '<rect class="sea" width="' + vb[2] + '" height="' + vb[3] + '"/>';
+    out += MAP.paths.map(function (d) { return '<path class="land" d="' + d + '"/>'; }).join("");
+
+    // normalizacao do tamanho pelo maior valor de TODOS os anos (bolhas comparaveis no play)
+    var maxS = 1;
+    D.ports.forEach(function (p) {
+      years.forEach(function (y) {
+        var m = (function () { var keep = metric; metric = "arrivals";
+          var r = metricVal(p.code, y); metric = keep; return r; })();
+        if (m && m.s > maxS) maxS = m.s;
+      });
+    });
+
+    var labels = "";
+    D.ports.forEach(function (p) {
+      var xy = MAP.ports_xy[p.code];
+      var m = metricVal(p.code, year);
+      if (!xy) return;
+      if (m === null) {
+        out += '<circle data-c="' + p.code + '" cx="' + xy[0] + '" cy="' + xy[1] +
+          '" r="3.5" fill="#c9d4da"><title>' + pname(p.code) + " — no complete data for " + year + "</title></circle>";
+        return;
+      }
+      var r = 5 + 24 * Math.sqrt(m.s / maxS);
+      out += '<circle data-c="' + p.code + '" cx="' + xy[0] + '" cy="' + xy[1] + '" r="' + r.toFixed(1) +
+        '" fill="' + colourFor(m.v) + '" fill-opacity="0.55" stroke="' + colourFor(m.v) +
+        '" stroke-width="2"><title>' + pname(p.code) + " " + year + " — " + fmtMetric(m.v) + " (" +
+        metricLabel() + "), " + fmt(m.s) + " arrivals</title></circle>";
+      if (r > 16 || p.code === detailPort) {
+        labels += '<text class="plabel" x="' + xy[0] + '" y="' + (xy[1] - r - 4) +
+          '" text-anchor="middle">' + pname(p.code) + "</text>";
+      }
+    });
+    svg.innerHTML = out + labels;
+    drawLegend();
+    if (detailPort) drawDetail(detailPort);
+  }
+
+  function drawLegend() {
+    var lg = "";
+    if (metric === "growth") {
+      lg = '<span><span class="sw" style="background:#2fa36b"></span>above 2019</span>' +
+           '<span><span class="sw" style="background:#d6584f"></span>below 2019</span>' +
+           '<span><span class="sw" style="background:#8ba0ac"></span>±1%</span>';
+    } else {
+      lg = '<span><span class="sw" style="background:#0fb5ba"></span>' + metricLabel() + "</span>";
+    }
+    lg += "<span>Bubble size: arrivals in the year (same scale across years)</span>" +
+          '<span><span class="sw" style="background:#c9d4da;width:9px;height:9px"></span>no complete data</span>';
+    el("legend").innerHTML = lg;
+  }
+
+  function drawDetail(code) {
+    detailPort = code;
+    var year = years[yi];
+    var nr = yearVal(code, "TOTAL", year);
+    var base = yearVal(code, "TOTAL", 2019);
+    var cnt = nr ? (yearVal(code, "ODC_CNT", year) || 0) / nr * 100 : null;
+    var gt = yearGT(code, year);
+    var rows = [
+      ["Arrivals " + year, nr === null ? "–" : fmt(nr)],
+      ["vs 2019", (nr !== null && base) ? ((nr / base - 1) * 100 >= 0 ? "+" : "") + ((nr / base - 1) * 100).toFixed(1) + "%" : "–"],
+      ["Container share", cnt === null ? "–" : cnt.toFixed(1) + "%"],
+      ["Avg vessel size", (gt !== null && nr) ? fmt(gt * 1000 / nr) + " GT" : "–"],
+    ];
+    el("detail-body").innerHTML = "<h3>" + pname(code) + "</h3><table>" +
+      rows.map(function (r) { return "<tr><td>" + r[0] + "</td><td>" + r[1] + "</td></tr>"; }).join("") +
+      "</table>";
+    el("detail").style.display = "block";
+  }
+
+  function step() {
+    yi = (yi + 1) % years.length;
+    el("year-slider").value = yi;
+    drawMap();
+    if (yi === years.length - 1) stop();
+  }
+  function play() {
+    if (timer) { stop(); return; }
+    if (yi === years.length - 1) yi = -1;
+    el("play").textContent = "⏸ Pause";
+    timer = setInterval(step, 1100);
+  }
+  function stop() {
+    clearInterval(timer); timer = null;
+    el("play").textContent = "▶ Play";
+  }
+
+  document.addEventListener("click", function (e) {
+    if (e.target.id === "play") { play(); return; }
+    if (e.target.id === "detail-close") { detailPort = null; el("detail").style.display = "none"; drawMap(); return; }
+    var c = e.target.closest ? e.target.closest("circle[data-c]") : null;
+    if (c) drawDetail(c.getAttribute("data-c"));
+  });
+  document.addEventListener("input", function (e) {
+    if (e.target.id === "year-slider") { stop(); yi = +e.target.value; drawMap(); }
+  });
+  document.addEventListener("change", function (e) {
+    if (e.target.id === "sel-metric") { metric = e.target.value; drawMap(); }
+  });
+
+  Promise.all([
+    fetch("data.json", { cache: "no-store" }).then(function (r) { return r.json(); }),
+    fetch("europe_map.json", { cache: "no-store" }).then(function (r) { return r.json(); })
+  ]).then(function (both) {
+    D = both[0]; MAP = both[1];
+    // anos com pelo menos um porto completo
+    var ys = [];
+    D.quarters.forEach(function (q) {
+      var y = +q.slice(0, 4);
+      if (ys.indexOf(y) < 0 && D.ports.some(function (p) { return yearVal(p.code, "TOTAL", y) !== null; })) {
+        ys.push(y);
+      }
+    });
+    years = ys;
+    yi = years.indexOf(+D.ref_year);
+    if (yi < 0) yi = years.length - 1;
+    var sl = el("year-slider");
+    sl.max = years.length - 1; sl.value = yi;
+    el("map-note").innerHTML = "<strong>How to read it.</strong> Bubble size is the number of " +
+      "arrivals in the selected year, on the same scale across all years, so pressing play shows " +
+      "real movement. The growth metric colours ports green (above 2019) or red (below 2019). " +
+      "Antwerp-Bruges and HAROPA report as merged entities only from 2022 and appear grey before " +
+      "that. Click a bubble for the port's card. Data: Eurostat, closed calendar years.";
+    drawMap();
+  }).catch(function () {
+    document.querySelector("main .wrap").insertAdjacentHTML("afterbegin",
+      "<p style='color:#d6584f'>data.json / europe_map.json could not be loaded. Serve over HTTP.</p>");
+  });
+})();
+</script>
+</body>
+</html>
